@@ -1,4 +1,5 @@
-import React, { createContext, useEffect, useReducer } from "react";
+// src/context/BoardProvider.js
+import React, { createContext, useEffect } from "react";
 import { boardReducer, initialBoardState } from "./boardReducer";
 import { loadBoardState, saveBoardState } from "../services/storage";
 import useUndoRedo from "../hooks/useUndoRedo";
@@ -7,10 +8,24 @@ import { useOfflineSync } from "../hooks/useOfflineSync";
 export const BoardContext = createContext(null);
 
 export function BoardProvider({ children }) {
-  // load persisted board (present state)
-  const storedState = loadBoardState() || initialBoardState;
+  // load persisted board (may be old / missing new fields)
+  const rawStoredState = loadBoardState();
 
-  // useUndoRedo wraps your reducer and provides history controls
+  // SAFELY MERGE stored state with current initial shape
+  const mergedInitialState = rawStoredState
+    ? {
+        ...initialBoardState,
+        ...rawStoredState,
+        lists: Array.isArray(rawStoredState.lists)
+          ? rawStoredState.lists
+          : initialBoardState.lists,
+        tables: Array.isArray(rawStoredState.tables)
+          ? rawStoredState.tables
+          : initialBoardState.tables,
+      }
+    : initialBoardState;
+
+  // useUndoRedo wraps reducer + provides history
   const {
     state,
     dispatch,
@@ -19,43 +34,36 @@ export function BoardProvider({ children }) {
     canUndo,
     canRedo,
     replace,
-  } = useUndoRedo(boardReducer, storedState);
+  } = useUndoRedo(boardReducer, mergedInitialState);
 
-  // Integrate useOfflineSync to sync state with the offline storage
+  // Offline sync (queue + retry + background sync)
   useOfflineSync(state, dispatch);
 
   // Persist present state whenever it changes
   useEffect(() => {
-    if (state && state.lists) {
+    if (state && Array.isArray(state.lists)) {
       saveBoardState(state);
     }
   }, [state]);
 
-  // Keyboard shortcuts: Cmd+Z = undo, Ctrl/Cmd+Y = redo
+  // Keyboard shortcuts: Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y
   useEffect(() => {
     function onKey(e) {
-      const mod = e.ctrlKey;  // Always use the Ctrl key
-  
-      if (!mod) return;
-  
-      // Undo: Ctrl + Z
+      if (!e.ctrlKey) return;
+
+      // Undo
       if (e.key === "z" || e.key === "Z") {
-        if (e.shiftKey) {
-          e.preventDefault();
-          redo();
-        } else {
-          e.preventDefault();
-          undo();
-        }
+        e.preventDefault();
+        e.shiftKey ? redo() : undo();
       }
-  
-      // Redo: Ctrl + Y
+
+      // Redo
       if (e.key === "y" || e.key === "Y") {
         e.preventDefault();
         redo();
       }
     }
-  
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
@@ -69,7 +77,7 @@ export function BoardProvider({ children }) {
         redo,
         canUndo,
         canRedo,
-        replace, // replace present state (e.g. after sync)
+        replace, // used by sync / hydrate
       }}
     >
       {children}

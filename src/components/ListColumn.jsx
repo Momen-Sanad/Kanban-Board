@@ -8,7 +8,7 @@ const CARD_HEIGHT = 72;
 const MAX_LIST_HEIGHT = 420;
 
 function ListColumn({ list, onOpenCard }) {
-  const { dispatch } = useContext(BoardContext);
+  const { state, dispatch } = useContext(BoardContext);
 
   const { isOver, setNodeRef } = useDroppable({
     id: list.id,
@@ -16,7 +16,6 @@ function ListColumn({ list, onOpenCard }) {
 
   const cardIds = useMemo(() => list.cards.map((c) => c.id), [list.cards]);
 
-  // Create card with empty fields and open modal so user can type title/description/tags
   const handleAddCard = useCallback(() => {
     const newCard = {
       id: crypto.randomUUID(),
@@ -27,14 +26,11 @@ function ListColumn({ list, onOpenCard }) {
       updatedAt: Date.now(),
     };
 
-    // Persist to state
     dispatch({
       type: "ADD_CARD",
       payload: { listId: list.id, card: newCard },
     });
 
-    // Immediately request opening the modal with the new card object.
-    // Board will render the modal using this object (and the reducer has the card too).
     if (typeof onOpenCard === "function") {
       onOpenCard(newCard, list.id);
     }
@@ -59,20 +55,42 @@ function ListColumn({ list, onOpenCard }) {
     });
   }, [dispatch, list.id]);
 
+  const handleMoveTable = useCallback(
+    (e) => {
+      const tableId = e.target.value;
+      dispatch({
+        type: "UPDATE_LIST",
+        payload: { listId: list.id, updates: { tableId, updatedAt: Date.now() } },
+      });
+    },
+    [dispatch, list.id]
+  );
+
   const listHeight = Math.min(MAX_LIST_HEIGHT, list.cards.length * CARD_HEIGHT);
 
   return (
     <div
       ref={setNodeRef}
-      className={`bg-white p-4 rounded shadow w-64 ${
-        isOver ? "border-2 border-dashed border-blue-500" : ""
-      }`}
+      className={`bg-white p-4 rounded shadow w-80 ${isOver ? "border-2 border-dashed border-blue-500" : ""}`}
     >
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="font-semibold">{list.title}</h2>
-        <div className="flex gap-2">
+      <div className="flex justify-between items-start mb-2 gap-2">
+        <div className="flex-1">
+          <h2 className="font-semibold">{list.title}</h2>
+
+          <div className="mt-2">
+            <select value={list.tableId} onChange={handleMoveTable} className="text-sm p-1 border rounded">
+              {state.tables.map((t) => (
+                <option key={t.id} value={t.id}>
+                  Move to {t.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 ml-2">
           <button onClick={handleRenameList} className="text-blue-500 text-sm">Rename</button>
-          <button onClick={handleArchiveList} className="text-red-500 text-sm">Archive</button>
+          <button onClick={handleArchiveList} className="text-red-500 text-sm">Delete</button>
         </div>
       </div>
 
@@ -81,13 +99,7 @@ function ListColumn({ list, onOpenCard }) {
       </button>
 
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <VirtualizedCardList
-          cards={list.cards}
-          listId={list.id}
-          height={listHeight}
-          itemHeight={CARD_HEIGHT}
-          onOpenCard={onOpenCard}
-        />
+        <VirtualizedCardList cards={list.cards} listId={list.id} height={listHeight} itemHeight={CARD_HEIGHT} onOpenCard={onOpenCard} />
       </SortableContext>
     </div>
   );

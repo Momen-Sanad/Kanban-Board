@@ -4,14 +4,16 @@ import Board from "./components/Board";
 function App() {
   return (
     <BoardProvider>
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center">
+        <h1 className="text-2xl font-bold my-4">Kanban Board</h1>
+
+        <div className="w-full overflow-x-auto flex justify-center">
           <Board />
-        <h1 className="text-2xl font-bold p-4">
-          Kanban Board
-        </h1>
+        </div>
       </div>
     </BoardProvider>
   );
 }
+
 
 export default App;

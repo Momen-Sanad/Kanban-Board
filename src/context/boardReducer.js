@@ -1,171 +1,163 @@
 export const initialBoardState = {
   updatedAt: Date.now(),
-  lists: [],
+  // top-level tables (can customize labels)
+  tables: [
+    { id: "backlog", title: "Backlog" },
+    { id: "doing", title: "Doing" },
+    { id: "review", title: "Review" },
+    { id: "done", title: "Done" },
+  ],
+  lists: [], // each list: { id, title, cards: [], tableId, archived?, updatedAt }
 };
 
 export function boardReducer(state, action) {
   console.log("Reducer action:", action);
 
   switch (action.type) {
-    case "ADD_LIST":
+    case "ADD_LIST": {
+      const newList = {
+        ...(action.payload || {}),
+        cards: (action.payload && action.payload.cards) || [],
+        tableId: (action.payload && action.payload.tableId) || "doing",
+        archived: false,
+        updatedAt: Date.now(),
+      };
+
       return {
-      ...state,
-      updatedAt: Date.now(),
-      lists: [
-      ...state.lists,
-      {
-          ...action.payload,
-          updatedAt: Date.now(),
-      },
-      ],
-    };
-    case "UPDATE_LIST": {
-    const { listId, updates } = action.payload;
-      return {
-          ...state,
-          lists: state.lists.map((list) =>
-          list.id === listId ? { ...list, ...updates, updatedAt: Date.now() } : list
-          ),
+        ...state,
+        updatedAt: Date.now(),
+        lists: [...state.lists, newList],
       };
     }
-  
+
+    case "UPDATE_LIST": {
+      const { listId, updates } = action.payload;
+      return {
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.map((list) =>
+          list.id === listId ? { ...list, ...updates, updatedAt: Date.now() } : list
+        ),
+      };
+    }
+
+    // DELETE_LIST now performs "archive" (move to backlog) so no data loss.
+    // If you really want to permanently delete, add a different action.
     case "DELETE_LIST": {
       const { listId } = action.payload;
       return {
-          ...state,
-          lists: state.lists.filter((list) => list.id !== listId),
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.map((list) =>
+          list.id === listId
+            ? { ...list, archived: true, tableId: "backlog", updatedAt: Date.now() }
+            : list
+        ),
       };
     }
 
-
-    case "HYDRATE":
-      return action.payload;
-
-    case "ADD_CARD":
-    return {
-      ...state,
-      updatedAt: Date.now(),
-      lists: state.lists.map((list) =>
-      list.id === action.payload.listId
-          ? {
-              ...list,
-              updatedAt: Date.now(),
-              cards: [
-              ...list.cards,
-              { ...action.payload.card, updatedAt: Date.now() },
-              ],
-          }
-          : list
-      ),
-    };
-    case "UPDATE_CARD": {
-        const { listId, cardId, updates } = action.payload;
-        return {
-            ...state,
-            lists: state.lists.map((list) =>
-            list.id === listId
-                ? {
-                    ...list,
-                    updatedAt: Date.now(),
-                    cards: list.cards.map((card) =>
-                    card.id === cardId ? { ...card, ...updates, updatedAt: Date.now() } : card
-                    ),
-                }
-                : list
-            ),
-        };
+    case "ADD_CARD": {
+      return {
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.map((list) =>
+          list.id === action.payload.listId
+            ? {
+                ...list,
+                updatedAt: Date.now(),
+                cards: [...(list.cards || []), { ...action.payload.card, updatedAt: Date.now() }],
+              }
+            : list
+        ),
+      };
     }
-    case "OPEN_CARD_MODAL":
-    return {
-        ...state,
-        activeCard: action.payload.card,
-        activeListId: action.payload.listId,
-    };
 
-    case "CLOSE_CARD_MODAL":
-    return {
+    case "UPDATE_CARD": {
+      const { listId, cardId, updates } = action.payload;
+      return {
         ...state,
-        activeCard: null,
-        activeListId: null,
-    };
+        updatedAt: Date.now(),
+        lists: state.lists.map((list) =>
+          list.id === listId
+            ? {
+                ...list,
+                updatedAt: Date.now(),
+                cards: list.cards.map((card) =>
+                  card.id === cardId ? { ...card, ...updates, updatedAt: Date.now() } : card
+                ),
+              }
+            : list
+        ),
+      };
+    }
 
     case "DELETE_CARD": {
-        const { listId, cardId } = action.payload;
-        return {
-            ...state,
-            lists: state.lists.map((list) =>
-            list.id === listId
-                ? {
-                    ...list,
-                    updatedAt: Date.now(),
-                    cards: list.cards.filter((card) => card.id !== cardId),
-                }
-                : list
-            ),
-        };
+      const { listId, cardId } = action.payload;
+      return {
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.map((list) =>
+          list.id === listId
+            ? { ...list, updatedAt: Date.now(), cards: list.cards.filter((c) => c.id !== cardId) }
+            : list
+        ),
+      };
     }
 
-
     case "MOVE_CARD": {
-        const { sourceListId, targetListId, cardId, targetIndex } = action.payload;
+      const { sourceListId, targetListId, cardId, targetIndex } = action.payload;
 
-        const sourceList = state.lists.find((l) => l.id === sourceListId);
-        const targetList = state.lists.find((l) => l.id === targetListId);
+      const sourceList = state.lists.find((l) => l.id === sourceListId);
+      const targetList = state.lists.find((l) => l.id === targetListId);
 
-        if (!sourceList || !targetList) return state;
+      if (!sourceList || !targetList) return state;
 
-        const cardIndex = sourceList.cards.findIndex((c) => c.id === cardId);
-        if (cardIndex === -1) return state;
+      const cardIndex = sourceList.cards.findIndex((c) => c.id === cardId);
+      if (cardIndex === -1) return state;
 
-        const cardToMove = sourceList.cards[cardIndex];
-        const now = Date.now();
+      const card = sourceList.cards[cardIndex];
 
-        // ---- SAME LIST REORDER ----
-        if (sourceListId === targetListId) {
-            const newCards = [...sourceList.cards];
-            newCards.splice(cardIndex, 1); // remove
-            newCards.splice(targetIndex, 0, cardToMove); // insert
-
-            // Create updated source list with the timestamp
-            const updatedSourceList = {
-            ...sourceList,
-            updatedAt: now,
-            cards: newCards,
-            };
-
-            return {
-            ...state,
-            updatedAt: now,
-            lists: state.lists.map((list) =>
-                list.id === sourceListId ? updatedSourceList : list
-            ),
-            };
-        }
-
-        // ---- CROSS LIST MOVE ----
-        const updatedSourceList = {
-            ...sourceList,
-            updatedAt: now,
-            cards: sourceList.cards.filter((card) => card.id !== cardId), // remove card from source
-        };
-
-        const updatedTargetList = {
-            ...targetList,
-            updatedAt: now,
-            cards: [
-            ...targetList.cards.slice(0, targetIndex),
-            { ...cardToMove, updatedAt: now }, // add card to target with timestamp
-            ...targetList.cards.slice(targetIndex),
-            ],
-        };
+      // same-list reorder
+      if (sourceListId === targetListId) {
+        const newCards = [...sourceList.cards];
+        newCards.splice(cardIndex, 1);
+        newCards.splice(targetIndex, 0, card);
 
         return {
-            ...state,
-            updatedAt: now,
-            lists: state.lists
-            .map((l) => (l.id === sourceListId ? updatedSourceList : l))
-            .map((l) => (l.id === targetListId ? updatedTargetList : l)),
+          ...state,
+          updatedAt: Date.now(),
+          lists: state.lists.map((l) =>
+            l.id === sourceListId ? { ...l, cards: newCards, updatedAt: Date.now() } : l
+          ),
         };
+      }
+
+      // cross-list move
+      const newSourceCards = [...sourceList.cards];
+      newSourceCards.splice(cardIndex, 1);
+
+      const newTargetCards = [...targetList.cards];
+      newTargetCards.splice(targetIndex, 0, { ...card, updatedAt: Date.now() });
+
+      return {
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.map((l) => {
+          if (l.id === sourceListId) return { ...l, cards: newSourceCards, updatedAt: Date.now() };
+          if (l.id === targetListId) return { ...l, cards: newTargetCards, updatedAt: Date.now() };
+          return l;
+        }),
+      };
+    }
+
+    case "HYDRATE": {
+    const payload = action.payload || {};
+    return {
+        ...initialBoardState,
+        ...payload,
+        lists: Array.isArray(payload.lists) ? payload.lists : initialBoardState.lists,
+        tables: Array.isArray(payload.tables) ? payload.tables : initialBoardState.tables,
+    };
     }
 
 

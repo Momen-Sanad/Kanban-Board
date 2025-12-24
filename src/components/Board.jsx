@@ -1,4 +1,5 @@
-import { useCallback, useState, useContext, useEffect, useRef  } from "react";
+// src/components/Board.jsx
+import { useCallback, useState, useContext } from "react";
 import { BoardContext } from "../context/BoardProvider";
 import ListColumn from "./ListColumn";
 import {
@@ -13,33 +14,16 @@ import Card from "./Card";
 import CardDetailModal from "./CardDetailModal";
 
 function Board() {
-
-  const lastAddedCardIdRef = useRef(null);
   const { state, dispatch } = useContext(BoardContext);
 
-  const [activeCard, setActiveCard] = useState(null); // used for DragOverlay
-  const [modalCard, setModalCard] = useState(null); // { card, listId } or null
+  const [activeCard, setActiveCard] = useState(null);
+  const [modalCard, setModalCard] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
     })
   );
-
-  function handleAddList() {
-    const title = prompt("List name?");
-    if (!title) return;
-
-    dispatch({
-      type: "ADD_LIST",
-      payload: {
-        id: crypto.randomUUID(),
-        title,
-        cards: [],
-        updatedAt: Date.now(),
-      },
-    });
-  }
 
   // ---------- helpers ----------
   const findListByCardId = useCallback(
@@ -89,14 +73,14 @@ function Board() {
       const sourceListId = sourceList.id;
       const targetListId = targetList.id;
 
-      const sourceIndex = sourceList.cards.findIndex((c) => c.id === active.id);
+      const sourceIndex = sourceList.cards.findIndex(
+        (c) => c.id === active.id
+      );
 
-      let targetIndex;
-      if (over.id === targetListId) {
-        targetIndex = targetList.cards.length;
-      } else {
-        targetIndex = targetList.cards.findIndex((c) => c.id === over.id);
-      }
+      let targetIndex =
+        over.id === targetListId
+          ? targetList.cards.length
+          : targetList.cards.findIndex((c) => c.id === over.id);
 
       if (sourceListId === targetListId && sourceIndex < targetIndex) {
         targetIndex -= 1;
@@ -121,7 +105,7 @@ function Board() {
     setActiveCard(null);
   }, []);
 
-  // ---------- modal open/close helpers ----------
+  // ---------- modal helpers ----------
   const openCardModal = useCallback((card, listId) => {
     setModalCard({ card, listId });
   }, []);
@@ -130,23 +114,9 @@ function Board() {
     setModalCard(null);
   }, []);
 
-
-  useEffect(() => {
-    // Find the most recently added card
-    for (const list of state.lists) {
-      for (const card of list.cards) {
-        if (card.id !== lastAddedCardIdRef.current && card.title === "New card") {
-          lastAddedCardIdRef.current = card.id;
-          setModalCard({ card, listId: list.id });
-          return;
-        }
-      }
-    }
-  }, [state.lists]);
-
-
+  // ---------- render ----------
   return (
-    <div className="p-4">
+    <div className="p-6 flex justify-center">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -154,37 +124,83 @@ function Board() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex gap-4 mb-4">
-          {state.lists.map((list) => (
-            <ListColumn
-              key={list.id}
-              list={list}
-              onOpenCard={(card, listId) => openCardModal(card, listId)}
-            />
-          ))}
+        {/* TABLES GRID */}
+        <div className="tables">
+          {state.tables.map((table) => {
+            const listsForTable =
+              table.id === "backlog"
+                ? state.lists.filter(
+                    (l) => l.tableId === "backlog" || l.archived
+                  )
+                : state.lists.filter(
+                    (l) => l.tableId === table.id && !l.archived
+                  );
 
-          <button
-            onClick={handleAddList}
-            className="w-64 h-20 border-2 border-dashed rounded text-gray-500 hover:bg-gray-100"
-          >
-            + Add List
-          </button>
+            return (
+              <div key={table.id} className="table-card">
+                {/* Header */}
+                <div className="table-card-header">
+                  <div className="table-card-title">{table.title}</div>
+                  <div className="table-card-sub">
+                    {listsForTable.length} lists
+                  </div>
+                </div>
+
+                {/* Body */}
+                <div className="table-card-body">
+                  {listsForTable.map((list) => (
+                    <ListColumn
+                      key={list.id}
+                      list={list}
+                      onOpenCard={(card, listId) =>
+                        openCardModal(card, listId)
+                      }
+                    />
+                  ))}
+
+                  {/* Add list button (not in backlog) */}
+                  {table.id !== "backlog" && (
+                    <button
+                      onClick={() => {
+                        const title = prompt("List name?");
+                        if (!title) return;
+
+                        dispatch({
+                          type: "ADD_LIST",
+                          payload: {
+                            id: crypto.randomUUID(),
+                            title,
+                            cards: [],
+                            tableId: table.id,
+                            updatedAt: Date.now(),
+                          },
+                        });
+                      }}
+                      className="w-full py-2 border-2 border-dashed rounded text-gray-500 hover:bg-gray-100"
+                    >
+                      + Add List
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Drag overlay shows the dragged card while dragging */}
+        {/* Drag overlay */}
         <DragOverlay>
           {activeCard ? <Card card={activeCard} dragOverlay /> : null}
         </DragOverlay>
       </DndContext>
 
-      {/* Card detail modal (open when modalCard is set) */}
-      {modalCard ? (
+      {/* Card modal */}
+      {modalCard && (
         <CardDetailModal
           card={modalCard.card}
           listId={modalCard.listId}
           onClose={closeCardModal}
         />
-      ) : null}
+      )}
     </div>
   );
 }
