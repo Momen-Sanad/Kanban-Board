@@ -16,8 +16,8 @@ import CardDetailModal from "./CardDetailModal";
 function Board() {
   const { state, dispatch } = useContext(BoardContext);
 
-  const [activeCard, setActiveCard] = useState(null);
-  const [modalCard, setModalCard] = useState(null);
+  const [activeCard, setActiveCard] = useState(null); // used for DragOverlay
+  const [modalCard, setModalCard] = useState(null); // { card, listId } or null
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -44,7 +44,7 @@ function Board() {
     [findListByCardId]
   );
 
-  // ---------- DnD handlers ----------
+  // ---------- DnD handlers (same as before) ----------
   const handleDragStart = useCallback(
     (event) => {
       const card = findCardById(event.active.id);
@@ -73,14 +73,14 @@ function Board() {
       const sourceListId = sourceList.id;
       const targetListId = targetList.id;
 
-      const sourceIndex = sourceList.cards.findIndex(
-        (c) => c.id === active.id
-      );
+      const sourceIndex = sourceList.cards.findIndex((c) => c.id === active.id);
 
-      let targetIndex =
-        over.id === targetListId
-          ? targetList.cards.length
-          : targetList.cards.findIndex((c) => c.id === over.id);
+      let targetIndex;
+      if (over.id === targetListId) {
+        targetIndex = targetList.cards.length;
+      } else {
+        targetIndex = targetList.cards.findIndex((c) => c.id === over.id);
+      }
 
       if (sourceListId === targetListId && sourceIndex < targetIndex) {
         targetIndex -= 1;
@@ -105,7 +105,7 @@ function Board() {
     setActiveCard(null);
   }, []);
 
-  // ---------- modal helpers ----------
+  // modal helpers
   const openCardModal = useCallback((card, listId) => {
     setModalCard({ card, listId });
   }, []);
@@ -114,9 +114,10 @@ function Board() {
     setModalCard(null);
   }, []);
 
-  // ---------- render ----------
+  // Render tables as four big "kanban-column" cards
   return (
-    <div className="p-6 flex justify-center">
+    <div className="board-container">
+      {/* Optional Board header could be placed here if you have one */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -124,83 +125,71 @@ function Board() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {/* TABLES GRID */}
-        <div className="tables">
+        {/* Main grid with four lanes */}
+        <div className="kanban-board">
           {state.tables.map((table) => {
+            // backlog shows archived lists as well
             const listsForTable =
               table.id === "backlog"
-                ? state.lists.filter(
-                    (l) => l.tableId === "backlog" || l.archived
-                  )
-                : state.lists.filter(
-                    (l) => l.tableId === table.id && !l.archived
-                  );
+                ? state.lists.filter((l) => l.tableId === "backlog" || l.archived)
+                : state.lists.filter((l) => l.tableId === table.id && !l.archived);
 
             return (
-              <div key={table.id} className="table-card">
-                {/* Header */}
-                <div className="table-card-header">
-                  <div className="table-card-title">{table.title}</div>
-                  <div className="table-card-sub">
-                    {listsForTable.length} lists
-                  </div>
+              <section key={table.id} className="kanban-column" id={`column-${table.id}`}>
+                {/* Column header */}
+                <div className="column-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <span>{table.title}</span>
+                  <span className="task-count">{listsForTable.length}</span>
                 </div>
 
-                {/* Body */}
-                <div className="table-card-body">
+                {/* Task-list area (contains your ListColumn components stacked vertically) */}
+                <div className="task-list" role="list">
                   {listsForTable.map((list) => (
                     <ListColumn
                       key={list.id}
                       list={list}
-                      onOpenCard={(card, listId) =>
-                        openCardModal(card, listId)
-                      }
+                      onOpenCard={(card, listId) => openCardModal(card, listId)}
                     />
                   ))}
 
-                  {/* Add list button (not in backlog) */}
+                  {/* Add-list button (not shown for backlog) */}
                   {table.id !== "backlog" && (
-                    <button
-                      onClick={() => {
-                        const title = prompt("List name?");
-                        if (!title) return;
-
-                        dispatch({
-                          type: "ADD_LIST",
-                          payload: {
-                            id: crypto.randomUUID(),
-                            title,
-                            cards: [],
-                            tableId: table.id,
-                            updatedAt: Date.now(),
-                          },
-                        });
-                      }}
-                      className="w-full py-2 border-2 border-dashed rounded text-gray-500 hover:bg-gray-100"
-                    >
-                      + Add List
-                    </button>
+                    <div style={{ padding: 12 }}>
+                      <button
+                        onClick={() => {
+                          const title = prompt("List name?");
+                          if (!title) return;
+                          dispatch({
+                            type: "ADD_LIST",
+                            payload: {
+                              id: crypto.randomUUID(),
+                              title,
+                              cards: [],
+                              tableId: table.id,
+                              updatedAt: Date.now(),
+                            },
+                          });
+                        }}
+                        className="btn btn-primary"
+                      >
+                        + Add List
+                      </button>
+                    </div>
                   )}
                 </div>
-              </div>
+              </section>
             );
           })}
         </div>
 
-        {/* Drag overlay */}
-        <DragOverlay>
-          {activeCard ? <Card card={activeCard} dragOverlay /> : null}
-        </DragOverlay>
+        {/* Drag overlay shows the dragged card while dragging */}
+        <DragOverlay>{activeCard ? <Card card={activeCard} dragOverlay /> : null}</DragOverlay>
       </DndContext>
 
-      {/* Card modal */}
-      {modalCard && (
-        <CardDetailModal
-          card={modalCard.card}
-          listId={modalCard.listId}
-          onClose={closeCardModal}
-        />
-      )}
+      {/* Card detail modal (open when modalCard is set) */}
+      {modalCard ? (
+        <CardDetailModal card={modalCard.card} listId={modalCard.listId} onClose={closeCardModal} />
+      ) : null}
     </div>
   );
 }

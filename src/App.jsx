@@ -5,10 +5,14 @@ function App() {
   return (
     <BoardProvider>
       <div className="min-h-screen bg-gray-100 flex flex-col items-center">
-        <h1 className="text-2xl font-bold my-4">Kanban Board</h1>
+        <div className="board-header" style={{ width: "100%", maxWidth: 1200 }}>
+          <h1 className="page-title">Kanban Board</h1>
+        </div>
 
-        <div className="w-full overflow-x-auto flex justify-center">
-          <Board />
+        <div className="w-full overflow-x-auto">
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Board />
+          </div>
         </div>
       </div>
     </BoardProvider>
