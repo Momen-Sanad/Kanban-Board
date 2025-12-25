@@ -47,4 +47,66 @@ describe("boardReducer", () => {
     expect(from.cards.find((c) => c.id === "c1")).toBeUndefined();
     expect(to.cards.find((c) => c.id === "c1")).toBeDefined();
   });
+
+  test("adds a new list", () => {
+    const initial = {
+      lists: [],
+      tables: [],
+    };
+
+    const newList = { id: "2", title: "New List" };
+
+    const state = boardReducer(initial, {
+      type: "ADD_LIST",
+      payload: newList,
+    });
+
+    const addedList = state.lists.find((l) => l.id === "2");
+    expect(addedList).toBeDefined();
+    expect(addedList.title).toBe("New List");
+    expect(addedList.cards).toEqual([]);
+  });
+
+  test("updates a card", () => {
+    const initial = {
+      lists: [
+        { id: "1", cards: [{ id: "c1", title: "Old Title" }] },
+      ],
+      tables: [],
+    };
+
+    const updatedCard = { title: "Updated Title" };
+
+    const state = boardReducer(initial, {
+      type: "UPDATE_CARD",
+      payload: {
+        listId: "1",
+        cardId: "c1",
+        updates: updatedCard,
+      },
+    });
+
+    const card = state.lists[0].cards.find((c) => c.id === "c1");
+    expect(card.title).toBe("Updated Title");
+  });
+
+  test("archives a list (DELETE_LIST)", () => {
+    const initial = {
+      lists: [
+        { id: "1", title: "Archived List", archived: false },
+      ],
+      tables: [],
+    };
+
+    const state = boardReducer(initial, {
+      type: "DELETE_LIST",
+      payload: {
+        listId: "1",
+      },
+    });
+
+    const archivedList = state.lists.find((l) => l.id === "1");
+    expect(archivedList.archived).toBe(true);
+    expect(archivedList.tableId).toBe("backlog");
+  });
 });

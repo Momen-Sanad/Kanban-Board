@@ -1,141 +1,138 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { memo, useContext, useState, Suspense } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { BoardContext } from "../context/BoardProvider";
-import ConfirmDialog from "./ConfirmDialog";
 
-function CardDetailModal({ card, listId, onClose }) {
+const CardDetailModal = React.lazy(() => import("./CardDetailModal"));
+
+function Card({ card, listId, dragOverlay = false, onOpenCard }) {
   const { dispatch } = useContext(BoardContext);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // Local editable copy of card fields
-  const [title, setTitle] = useState(card?.title ?? "");
-  const [description, setDescription] = useState(card?.description ?? "");
-  const [tags, setTags] = useState(card?.tags ? [...card.tags] : []);
-  const [newTag, setNewTag] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const titleRef = useRef(null);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: card.id, data: { type: "card", card } });
 
-  // When the modal opens or card prop changes, initialize local state
-  useEffect(() => {
-    setTitle(card?.title ?? "");
-    setDescription(card?.description ?? "");
-    setTags(card?.tags ? [...card.tags] : []);
-    setNewTag("");
-    // focus the title input so user can start typing immediately
-    setTimeout(() => {
-      if (titleRef.current) titleRef.current.focus();
-    }, 0);
-  }, [card]);
+  const style = {
+    transform: dragOverlay ? undefined : CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 999 : "auto",
+  };
 
-  function addTag() {
-    const t = newTag.trim();
-    if (!t) return;
-    if (!tags.includes(t)) setTags((s) => [...s, t]);
-    setNewTag("");
-  }
+  function handleRename(e) {
+    e.stopPropagation();
+    const newTitle = prompt("Rename card:", card.title);
+    if (!newTitle || newTitle === card.title) return;
 
-  function removeTag(tag) {
-    setTags((s) => s.filter((x) => x !== tag));
-  }
-
-  function handleSave() {
     dispatch({
       type: "UPDATE_CARD",
       payload: {
         listId,
         cardId: card.id,
-        updates: {
-          title: title,
-          description: description,
-          tags: tags,
-          updatedAt: Date.now(),
-        },
+        updates: { title: newTitle, updatedAt: Date.now() },
       },
     });
-    onClose();
   }
 
-  function handleDeleteConfirmed() {
+  function handleDelete(e) {
+    e.stopPropagation();
+    if (!confirm("Delete this card?")) return;
+
     dispatch({
       type: "DELETE_CARD",
       payload: { listId, cardId: card.id },
     });
-    setConfirmOpen(false);
-    onClose();
   }
+
+  function handleOpenModal(e) {
+    if (e.button && e.button !== 0) return;
+    setModalOpen(true);
+    if (onOpenCard) onOpenCard(card, listId);
+  }
+
+  const description = card.description || "";
+  const shortDesc = description.length > 80 ? description.slice(0, 77) + "…" : description;
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white p-6 rounded shadow-lg w-[26rem] max-h-[80vh] overflow-auto">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">Card details</h2>
-              <p className="text-sm text-gray-500">Edit card information</p>
-            </div>
-            <button onClick={onClose} className="text-gray-500">✕</button>
-          </div>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`bg-gray-50 p-3 rounded mb-2 shadow-sm relative ${
+          dragOverlay ? "w-56 shadow-lg" : ""
+        }`}
+        onClick={handleOpenModal}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleOpenModal(e);
+        }}
+      >
+        {/* Title */}
+        <div {...attributes} {...listeners} className="font-medium mb-1 cursor-move">
+          {card.title}
+        </div>
 
-          <label className="block mb-2 font-medium">Title</label>
-          <input
-            ref={titleRef}
-            className="w-full p-2 border rounded mb-4"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Card title"
-          />
+        {/* Short description */}
+        {shortDesc && <div className="text-sm text-gray-600 mb-2">{shortDesc}</div>}
 
-          <label className="block mb-2 font-medium">Description</label>
-          <textarea
-            className="w-full p-2 border rounded mb-4"
-            rows={6}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a description..."
-          />
-
-          <label className="block mb-2 font-medium">Tags</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map((t) => (
-              <div key={t} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                <span className="text-sm">{t}</span>
-                <button onClick={() => removeTag(t)} className="text-red-500 text-sm">×</button>
-              </div>
+        {/* Tags */}
+        {card.tags && card.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-1">
+            {card.tags.slice(0, 3).map((t) => (
+              <span
+                key={t}
+                className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded"
+              >
+                {t}
+              </span>
             ))}
+            {card.tags.length > 3 && (
+              <span className="text-xs text-gray-500 px-1">+{card.tags.length - 3}</span>
+            )}
           </div>
-          <div className="flex gap-2 mb-4">
-            <input
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              placeholder="New tag"
-              className="flex-1 p-2 border rounded"
-            />
-            <button onClick={addTag} className="px-3 py-2 bg-blue-500 text-white rounded">Add</button>
-          </div>
+        )}
 
-          <div className="flex justify-between items-center gap-3">
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmOpen(true)} className="px-3 py-2 bg-red-500 text-white rounded">Delete Card</button>
-            </div>
+        {/* Rename & Delete */}
+        <div className="absolute right-1 top-1 flex gap-1">
+          <button
+            onClick={handleRename}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-blue-500 text-xs hover:underline"
+            aria-label="Rename card"
+          >
+            Rename
+          </button>
 
-            <div className="flex gap-2">
-              <button onClick={onClose} className="px-3 py-2 border rounded">Cancel</button>
-              <button onClick={handleSave} className="px-3 py-2 bg-green-500 text-white rounded">Save</button>
-            </div>
-          </div>
+          <button
+            onClick={handleDelete}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-red-500 text-xs hover:underline"
+            aria-label="Delete card"
+          >
+            Delete
+          </button>
         </div>
       </div>
 
-      {/* Confirm delete card */}
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Delete card"
-        message="Are you sure you want to delete this card?"
-        confirmText="Delete"
-        destructive
-        onConfirm={handleDeleteConfirmed}
-        onCancel={() => setConfirmOpen(false)}
-      />
+      {/* Lazy-loaded modal */}
+      {modalOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 text-white">Loading card details…</div>}>
+          <CardDetailModal
+            card={card}
+            listId={listId}
+            onClose={() => setModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </>
   );
 }
 
-export default CardDetailModal;
+export default memo(
+  Card,
+  (prev, next) =>
+    prev.card.id === next.card.id &&
+    prev.card.title === next.card.title &&
+    prev.listId === next.listId &&
+    prev.dragOverlay === next.dragOverlay
+);

@@ -69,17 +69,20 @@ function Card({ card, listId, dragOverlay = false, onOpenCard }) {
 return (
   <div
     ref={setNodeRef}
+    data-testid="card"
     style={style}
     className={`bg-gray-50 p-3 rounded mb-2 shadow-sm relative ${
       dragOverlay ? "w-56 shadow-lg" : ""
     }`}
     onClick={handleOpenModal}
     role="button"
+    aria-label={`Open card ${card.title}`}
     tabIndex={0}
     onKeyDown={(e) => {
       if (e.key === "Enter") handleOpenModal(e);
     }}
   >
+
     {/* Title */}
     <div
       {...attributes}  // attach drag attributes to the title itself
@@ -111,13 +114,13 @@ return (
       </div>
     )}
 
-    {/* Inline actions: rename & delete (no archive) */}
+    {/*rename & delete*/}
     <div className="absolute right-1 top-1 flex gap-1">
       <button
         onClick={handleRename}
         onPointerDown={(e) => e.stopPropagation()}
         className="text-blue-500 text-xs hover:underline"
-        aria-label="Rename card"
+        aria-label={`Rename card ${card.id}`}  // Make aria-label unique
       >
         Rename
       </button>
@@ -126,10 +129,11 @@ return (
         onClick={handleDelete}
         onPointerDown={(e) => e.stopPropagation()}
         className="text-red-500 text-xs hover:underline"
-        aria-label="Delete card"
+        aria-label={`Delete card ${card.id}`}  // Make aria-label unique
       >
-        Delete
+          Delete
       </button>
+
     </div>
   </div>
 );

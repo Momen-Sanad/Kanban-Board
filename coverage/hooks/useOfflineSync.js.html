@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>5/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -102,67 +102,67 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect, useRef } from "react";
 import { loadBoardFromIDB, saveBoardToIDB } from "../services/indexedDb";
 import { loadBoardState } from "../services/storage";
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >useOfflineSync(</span>state, dispatch) {
-  const hydratedRef =<span class="cstat-no" title="statement not covered" > useRef(false);</span>
+export function useOfflineSync(state, dispatch) {
+  const hydratedRef = useRef(false);
 &nbsp;
   //Hydrate on app start
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-    async function <span class="fstat-no" title="function not covered" >hydrate(</span>) {
-      const idbState = <span class="cstat-no" title="statement not covered" >await loadBoardFromIDB();</span>
+  useEffect(() =&gt; {
+    async function hydrate() {
+      const idbState = await loadBoardFromIDB();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (idbState) {</span>
-<span class="cstat-no" title="statement not covered" >        dispatch({ type: "HYDRATE", payload: idbState });</span>
-<span class="cstat-no" title="statement not covered" >        hydratedRef.current = true;</span>
-<span class="cstat-no" title="statement not covered" >        return;</span>
+      if (idbState) {
+        dispatch({ type: "HYDRATE", payload: idbState });
+        hydratedRef.current = true;
+        return;
       }
 &nbsp;
-      const localState =<span class="cstat-no" title="statement not covered" > loadBoardState();</span>
-<span class="cstat-no" title="statement not covered" >      if (localState) {</span>
-<span class="cstat-no" title="statement not covered" >        dispatch({ type: "HYDRATE", payload: localState });</span>
-<span class="cstat-no" title="statement not covered" >        hydratedRef.current = true;</span>
+      const localState = loadBoardState();
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (localState) {
+        dispatch({ type: "HYDRATE", payload: localState });
+        hydratedRef.current = true;
       }
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    hydrate();</span>
+    hydrate();
   }, [dispatch]);
 &nbsp;
   //Persist on every state change
-<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!hydratedRef.current) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    saveBoardToIDB(state);</span>
+  useEffect(() =&gt; {
+    if (!hydratedRef.current) return;
+    saveBoardToIDB(state);
   }, [state]);
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -172,7 +172,7 @@ export function <span class="fstat-no" title="function not covered" >useOfflineS
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-25T11:52:38.395Z
+                at 2025-12-25T14:46:23.793Z
             </div>
         <script src="../prettify.js"></script>
         <script>
