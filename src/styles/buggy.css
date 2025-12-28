@@ -1,0 +1,233 @@
+/* ===== LAYOUT / BOARD ===== */
+.board-container {
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+  background: var(--color-background-main);
+  transition: background 0.3s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding: 20px 24px;
+  background: var(--color-background-card);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+}
+
+/* ===== CONTROLS ===== */
+.board-controls { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.control-group { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; transition:all 0.3s ease; }
+.filter-select { padding:10px 14px; border:2px solid var(--color-border); border-radius:8px; background:var(--color-background-card); font-weight:500; }
+
+/* Buttons */
+.btn { padding:11px 22px; border:none; border-radius:8px; cursor:pointer; font-weight:600; display:inline-flex; gap:8px; position:relative; overflow:hidden; }
+.btn-primary { background:var(--color-primary); color:#fff; box-shadow:0 4px 12px rgba(52,152,219,0.3); }
+.btn-styled { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); box-shadow:0 4px 15px rgba(102,126,234,0.4); }
+
+/* ===== KANBAN GRID / COLUMNS ===== */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1400px;
+  margin-top: 8px;
+}
+
+/* column */
+.kanban-column {
+  background: var(--color-background-card);
+  border-radius: 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  width: 100%;
+  max-width: 360px; /* constrain column width */
+}
+
+/* column header */
+.column-title {
+  font-size: 13px;
+  font-weight:700;
+  margin:0;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  text-transform:uppercase;
+  border-radius:12px 12px 0 0;
+}
+
+/* column color variants (kept) */
+#column-todo .column-title { background: var(--color-background-card); color:var(--color-text-main); border-bottom:2px solid var(--color-border); }
+#column-in-progress .column-title { background: linear-gradient(135deg,#6366f1 0%,#4f46e5 100%); color:#fff; }
+#column-review .column-title { background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color:#fff; }
+#column-done .column-title { background: linear-gradient(135deg,#10b981 0%,#059669 100%); color:#fff; }
+
+/* ===== TASK LIST (container for list items) =====
+   Important: keep align-items: flex-start (not centered) for virtualization & pointer stability
+*/
+.task-list {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  transition: background 0.3s ease;
+  align-items: flex-start; /* crucial for react-window + dnd */
+}
+
+.task-list.drag-over {
+  background: rgba(52,152,219,0.08);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px rgba(52,152,219,0.3);
+}
+
+/* ===== TASK CARD ===== */
+.task-card {
+    background: var(--color-background-card);
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    cursor: grab;  /* Only apply grab cursor on drag */
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-primary);
+    margin-bottom: 14px;
+    line-height: 1.5;
+    z-index: 10; /* Ensure task card is above other elements when dragging */
+}
+
+.task-card:active {
+    cursor: grabbing;  /* Change cursor when actively dragging */
+}
+
+.task-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(41, 128, 185, 0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+/* When task card is hovered, apply hover effect */
+.task-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+    border-color: var(--color-primary);
+}
+
+.task-card:hover::before {
+    opacity: 1;
+}
+
+/* ===== TASK CARD DRAGGING ===== */
+.task-card.dragging {
+    opacity: 0.6;
+    cursor: grabbing;
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1000;  /* Ensure dragged card is above other elements */
+}
+
+/* TASK LIST DRAGGING AREA */
+.task-list.drag-over {
+    background: rgba(52, 152, 219, 0.08);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+
+/* drag handle utility (important) */
+.drag-handle {
+  touch-action: none;            /* prevents touch scrolling from stealing pointer events */
+  -webkit-user-drag: none;
+  user-select: none;
+  cursor: grab;
+  outline: none;
+}
+.drag-handle:active,
+.drag-handle[aria-pressed="true"],
+.drag-handle[aria-grabbed="true"] {
+  cursor: grabbing;
+}
+
+/* keep action buttons interactive */
+.delete-task-btn,
+.task-footer button { cursor: pointer; }
+
+/* ===== MODAL & FORMS (kept & simplified) ===== */
+.modal { position: fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display:flex; align-items:center; justify-content:center; }
+.modal-content { background: var(--color-background-card); border-radius:16px; width:90%; max-width:650px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.3); border:1px solid var(--color-border); }
+.close-btn { background:transparent; border:none; font-size:28px; cursor:pointer; padding:4px; border-radius:6px; }
+
+/* form fields */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width:100%; padding:12px 14px; border:2px solid var(--color-border); border-radius:8px; background:var(--color-background-card); color:var(--color-text-main); box-sizing:border-box;
+}
+.form-group input:focus, .form-group select:focus { outline:none; border-color:var(--color-primary); box-shadow:0 0 0 4px rgba(52,152,219,0.12); }
+
+/* small utilities */
+.hidden { display:none !important; }
+.text-center { text-align:center; }
+.mt-2 { margin-top:0.5rem; }
+.mb-2 { margin-bottom:0.5rem; }
+
+/* responsive */
+@media (max-width: 1400px) { .kanban-board { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) {
+  .board-container { padding:16px; }
+  .kanban-board { grid-template-columns: 1fr; gap:16px; }
+  .board-header { flex-direction:column; align-items:flex-start; gap:16px; padding:16px 20px; }
+  .filter-select { width:100%; }
+}
+@media (max-width:600px) {
+  .board-container { padding:12px; }
+  .page-title { font-size:20px; }
+  .modal-content { width:95%; margin:10% auto; padding:16px; }
+  .task-card { padding:12px 14px; overflow-wrap:break-word; }
+}
+
+/* small polishing: scrollbar, animations (kept minimal) */
+.task-list::-webkit-scrollbar { width:8px; }
+.task-list::-webkit-scrollbar-thumb { background:#bdc3c7; border-radius:4px; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }

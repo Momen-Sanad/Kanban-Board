@@ -41,20 +41,33 @@ export function boardReducer(state, action) {
       };
     }
 
-    // DELETE_LIST now performs "archive" (move to backlog) so no data loss.
-    // If you really want to permanently delete, add a different action.
-    case "DELETE_LIST": {
+    case "ARCHIVE_LIST": {
       const { listId } = action.payload;
       return {
         ...state,
         updatedAt: Date.now(),
         lists: state.lists.map((list) =>
           list.id === listId
-            ? { ...list, archived: true, tableId: "backlog", updatedAt: Date.now() }
+            ? {
+                ...list,
+                archived: true,
+                tableId: "backlog",
+                updatedAt: Date.now(),
+              }
             : list
         ),
       };
     }
+
+    case "DELETE_LIST": {
+      const { listId } = action.payload;
+      return {
+        ...state,
+        updatedAt: Date.now(),
+        lists: state.lists.filter((list) => list.id !== listId),
+      };
+    }
+
 
     case "ADD_CARD": {
       return {
